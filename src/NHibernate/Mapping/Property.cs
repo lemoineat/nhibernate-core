@@ -29,6 +29,7 @@ namespace NHibernate.Mapping
 		private PropertyGeneration generation = PropertyGeneration.Never;
 		private bool isLazy;
 		private bool isNaturalIdentifier;
+		private bool isSecondaryKey = false;
 
 		public Property()
 		{
@@ -275,6 +276,12 @@ namespace NHibernate.Mapping
 		{
 			get { return isNaturalIdentifier; }
 			set { isNaturalIdentifier = value; }
+		}
+
+		public bool IsSecondaryKey
+		{
+		  get { return isSecondaryKey; }
+		  set { isSecondaryKey = value; }
 		}
 
 		// both many-to-one and one-to-one are represented as a

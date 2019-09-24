@@ -410,13 +410,14 @@ namespace NHibernate.Persister.Collection
 				if (!IsIdentifierAssignedByInsert)
 				{
 					sqlInsertRowString = GenerateInsertRowString();
+					insertCheckStyle = ExecuteUpdateResultCheckStyle.Count;
 				}
 				else
 				{
 					sqlInsertRowString = GenerateIdentityInsertRowString();
+					insertCheckStyle = ExecuteUpdateResultCheckStyle.None;
 				}
 				insertCallable = false;
-				insertCheckStyle = ExecuteUpdateResultCheckStyle.Count;
 			}
 			else
 			{
@@ -424,7 +425,7 @@ namespace NHibernate.Persister.Collection
 				sqlInsertRowString = new SqlCommandInfo(collection.CustomSQLInsert, parmsTypes);
 				insertCallable = collection.IsCustomInsertCallable;
 				insertCheckStyle = collection.CustomSQLInsertCheckStyle
-								   ?? ExecuteUpdateResultCheckStyle.DetermineDefault(collection.CustomSQLInsert, insertCallable);
+								   ?? ExecuteUpdateResultCheckStyle.DetermineDefaultInsert(collection.CustomSQLInsert, insertCallable);
 			}
 
 			sqlUpdateRowString = GenerateUpdateRowString();

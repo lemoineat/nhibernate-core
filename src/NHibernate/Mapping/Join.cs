@@ -12,6 +12,7 @@ namespace NHibernate.Mapping
 		private static readonly Alias PK_ALIAS = new Alias(15, "PK");
 
 		private readonly List<Property> properties = new List<Property>();
+		private readonly IList<Property> secondaryKeys = new List<Property> ();
 		private Table table;
 		private IKeyValue key;
 		private PersistentClass persistentClass;
@@ -34,6 +35,9 @@ namespace NHibernate.Mapping
 		public void AddProperty(Property prop)
 		{
 			properties.Add(prop);
+			if (prop.IsSecondaryKey) {
+			  secondaryKeys.Add (prop);
+			}
 			prop.PersistentClass = PersistentClass;
 		}
 
@@ -50,6 +54,11 @@ namespace NHibernate.Mapping
 			get { return properties; }
 		}
 
+		public IEnumerable<Property> SecondaryKeyIterator
+		{
+		  get { return secondaryKeys; }
+		}
+		
 		public virtual Table Table
 		{
 			get { return table; }
@@ -106,6 +115,11 @@ namespace NHibernate.Mapping
 		public int PropertySpan
 		{
 			get { return properties.Count; }
+		}
+		
+		public int SecondaryKeySpan
+		{
+		  get { return secondaryKeys.Count; }
 		}
 
 		public SqlString CustomSQLInsert { get { return customSQLInsert; } }

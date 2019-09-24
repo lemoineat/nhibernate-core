@@ -6,6 +6,7 @@ using NHibernate.Persister.Entity;
 using NHibernate.SqlCommand;
 using NHibernate.Impl;
 using NHibernate.Exceptions;
+using NHibernate.Type;
 
 namespace NHibernate.Dialect.Lock
 {
@@ -39,6 +40,10 @@ namespace NHibernate.Dialect.Lock
 				.SetTableName(lockable.RootTableName)
 				.AddColumn(lockable.RootTableIdentifierColumnNames[0])
 				.SetIdentityColumn(lockable.RootTableIdentifierColumnNames, lockable.IdentifierType);
+			for  (int i = 0; i < lockable.RootTableSecondaryKeyColumnNames.Length; ++i)
+			{
+			  select.AddWhereFragment (new string[] {lockable.RootTableSecondaryKeyColumnNames[i]}, "=");
+			}
 			if (lockable.IsVersioned)
 			{
 				select.SetVersionColumn(new string[] { lockable.VersionColumnName }, lockable.VersionType);
@@ -52,19 +57,25 @@ namespace NHibernate.Dialect.Lock
 
 		#region ILockingStrategy Members
 
-		public void Lock(object id, object version, object obj, ISessionImplementor session)
+		public void Lock(object id, object version, IType[] secondaryKeyTypes, object[] secondaryKeyValues, object obj, ISessionImplementor session)
 		{
 			ISessionFactoryImplementor factory = session.Factory;
 			try
 			{
-				var st = session.Batcher.PrepareCommand(CommandType.Text, sql, lockable.IdAndVersionSqlTypes);
+				var st = session.Batcher.PrepareCommand(CommandType.Text, sql, lockable.IdSecondaryKeyAndVersionSqlTypes);
 				DbDataReader rs = null;
 				try
 				{
-					lockable.IdentifierType.NullSafeSet(st, id, 0, session);
+				  int index = 0;
+					lockable.IdentifierType.NullSafeSet(st, id, index, session);
+					index += lockable.IdentifierType.GetColumnSpan(factory);
+					for (int i = 0; i < secondaryKeyTypes.Length; ++i)
+					{
+					  secondaryKeyTypes [i].NullSafeSet(st, secondaryKeyValues[i], index++, session);
+					}
 					if (lockable.IsVersioned)
 					{
-						lockable.VersionType.NullSafeSet(st, version, lockable.IdentifierType.GetColumnSpan(factory), session);
+						lockable.VersionType.NullSafeSet(st, version, index++, session);
 					}
 
 					rs = session.Batcher.ExecuteReader(st);

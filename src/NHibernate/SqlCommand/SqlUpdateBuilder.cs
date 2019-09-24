@@ -202,6 +202,19 @@ namespace NHibernate.SqlCommand
 		}
 
 		/// <summary>
+		/// Add a secondary-key for the <c>UPDATE</c> sql to use.
+		/// </summary>
+		/// <param name="columnNames">An array of the column names for the Property</param>
+		/// <param name="type">The IType of the SecondaryKey Property.</param>
+		/// <returns>The SqlUpdateBuilder.</returns>
+		public SqlUpdateBuilder AddSecondaryKeyColumn(string[] columnNames, IType type)
+		{
+			whereStrings.Add(ToWhereString(columnNames));
+			whereParameterTypes.AddRange(type.SqlTypes(Mapping));
+			return this;
+		}
+		
+		/// <summary>
 		/// Adds the columns for the Type to the WhereFragment
 		/// </summary>
 		/// <param name="columnNames">The names of the columns to add.</param>

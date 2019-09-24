@@ -205,7 +205,7 @@ namespace NHibernate.Persister.Entity
 				insertCallable[jk] = customSQLInsert[jk] != null && pc.IsCustomInsertCallable;
 				insertResultCheckStyles[jk] = pc.CustomSQLInsertCheckStyle
 											  ??
-											  ExecuteUpdateResultCheckStyle.DetermineDefault(customSQLInsert[jk], insertCallable[jk]);
+											  ExecuteUpdateResultCheckStyle.DetermineDefaultInsert(customSQLInsert[jk], insertCallable[jk]);
 				customSQLUpdate[jk] = pc.CustomSQLUpdate;
 				updateCallable[jk] = customSQLUpdate[jk] != null && pc.IsCustomUpdateCallable;
 				updateResultCheckStyles[jk] = pc.CustomSQLUpdateCheckStyle
@@ -420,6 +420,11 @@ namespace NHibernate.Persister.Entity
 		protected override string GetTableName(int table)
 		{
 			return naturalOrderTableNames[table];
+		}
+
+		protected override string[] GetIdentifierColumns(int table)
+		{
+			return naturalOrderTableKeyColumns[table];
 		}
 
 		protected override string[] GetKeyColumns(int table)

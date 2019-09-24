@@ -1072,6 +1072,56 @@ namespace NHibernate.Impl
 
 		#region load()/get() operations
 
+		public void GetPersistentCacheOnly(object obj, object id)
+		{
+			using (BeginProcess())
+			{
+				LoadEvent loadEvent = new LoadEvent(id, obj, this);
+				FireLoad(loadEvent, LoadEventListener.PersistentCacheOnly);
+			}
+		}
+
+		public T GetPersistentCacheOnly<T>(object id)
+		{
+			using (BeginProcess())
+			{
+				return (T)GetPersistentCacheOnly(typeof(T), id);
+			}
+		}
+
+		public object GetPersistentCacheOnly(string entityName, object id)
+		{
+			using (BeginProcess())
+			{
+				if (id == null)
+				{
+					throw new ArgumentNullException("id", "null is not a valid identifier");
+				}
+
+				var @event = new LoadEvent(id, entityName, false, this);
+				bool success = false;
+				try
+				{
+					FireLoad(@event, LoadEventListener.PersistentCacheOnly);
+					success = true;
+					return @event.Result;
+				}
+				finally
+				{
+					AfterOperation(success);
+				}
+			}
+		}
+
+		public object GetPersistentCacheOnly(System.Type entityClass, object id)
+		{
+			using (BeginProcess())
+			{
+				return GetPersistentCacheOnly(entityClass.FullName, id);
+			}
+		}
+
+
 		public void Load(object obj, object id)
 		{
 			using (BeginProcess())

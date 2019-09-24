@@ -39,7 +39,7 @@ namespace NHibernate.Hql.Ast.ANTLR.Exec
 			log.Debug("Generated ID-INSERT-SELECT SQL (multi-table delete) : {0}", idInsertSelect);
 
 			string[] tableNames = persister.ConstraintOrderedTableNameClosure;
-			string[][] columnNames = persister.ConstraintOrderedTableKeyColumnClosure;
+			string[] columnNames = persister.IdentifierColumnNames;
 			string idSubselect = GenerateIdSubselect(persister);
 
 			deletes = new SqlString[tableNames.Length];
@@ -51,7 +51,7 @@ namespace NHibernate.Hql.Ast.ANTLR.Exec
 				//          defining all the needed attributes), then we could then get an array of those
 				SqlDeleteBuilder delete = new SqlDeleteBuilder(Factory.Dialect, Factory)
 					.SetTableName(tableNames[i])
-					.SetWhere("(" + string.Join(", ", columnNames[i]) + ") IN (" + idSubselect + ")");
+					.SetWhere("(" + string.Join(", ", columnNames) + ") IN (" + idSubselect + ")");
 				if (Factory.Settings.IsCommentsEnabled)
 				{
 					delete.SetComment("bulk delete");

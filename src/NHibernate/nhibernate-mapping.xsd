@@ -892,6 +892,7 @@
 			</xs:attribute>
 			<xs:attribute name="optimistic-lock" default="true" type="xs:boolean">
 			</xs:attribute>
+			<xs:attribute name="secondary-key" default="false" type="xs:boolean" />
 			<xs:attribute name="foreign-key" type="xs:string" />
 			<xs:attribute name="property-ref" type="xs:string" />
 			<xs:attribute name="formula" type="xs:string" />

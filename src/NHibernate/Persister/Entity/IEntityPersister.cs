@@ -350,7 +350,7 @@ namespace NHibernate.Persister.Entity
 		/// <summary>
 		/// Do a version check (optional operation)
 		/// </summary>
-		void Lock(object id, object version, object obj, LockMode lockMode, ISessionImplementor session);
+		void Lock(object id, object version, object obj, EntityEntry entry, LockMode lockMode, ISessionImplementor session);
 
 		/// <summary>
 		/// Persist an instance
@@ -365,7 +365,7 @@ namespace NHibernate.Persister.Entity
 		/// <summary>
 		/// Delete a persistent instance
 		/// </summary>
-		void Delete(object id, object version, object obj, ISessionImplementor session);
+		void Delete(object id, object[] fields, object version, object obj, ISessionImplementor session);
 
 		/// <summary>
 		/// Update a persistent instance

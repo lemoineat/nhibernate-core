@@ -9,6 +9,7 @@ namespace NHibernate.Event
 		public static readonly LoadType InternalLoadEager;
 		public static readonly LoadType InternalLoadLazy;
 		public static readonly LoadType InternalLoadNullable;
+		public static readonly LoadType PersistentCacheOnly;
 
 		static LoadEventListener()
 		{
@@ -17,44 +18,58 @@ namespace NHibernate.Event
 				.SetAllowProxyCreation(false)
 				.SetCheckDeleted(true)
 				.SetNakedEntityReturned(false)
-				.SetExactPersister(true); // NH: Different behavior to pass NH-295
+				.SetExactPersister(true) // NH: Different behavior to pass NH-295
+			  .SetLoadEntity(true);
 
 			Get = new LoadType("Get")
 				.SetAllowNulls(true)
 				.SetAllowProxyCreation(false)
 				.SetCheckDeleted(true)
 				.SetNakedEntityReturned(false)
-				.SetExactPersister(true); // NH: Different behavior to pass NH-295
+				.SetExactPersister(true) // NH: Different behavior to pass NH-295
+			  .SetLoadEntity(true);
 
 			Load = new LoadType("Load")
 				.SetAllowNulls(false)
 				.SetAllowProxyCreation(true)
 				.SetCheckDeleted(true)
-				.SetNakedEntityReturned(false);
+				.SetNakedEntityReturned(false)
+			  .SetLoadEntity(true);
 
 			ImmediateLoad = new LoadType("ImmediateLoad")
 				.SetAllowNulls(true)
 				.SetAllowProxyCreation(false)
 				.SetCheckDeleted(false)
-				.SetNakedEntityReturned(true);
+				.SetNakedEntityReturned(true)
+			  .SetLoadEntity(true);
 
 			InternalLoadEager = new LoadType("InternalLoadEager")
 				.SetAllowNulls(false)
 				.SetAllowProxyCreation(false)
 				.SetCheckDeleted(false)
-				.SetNakedEntityReturned(false);
+				.SetNakedEntityReturned(false)
+			  .SetLoadEntity(true);
 
 			InternalLoadLazy = new LoadType("InternalLoadLazy")
 				.SetAllowNulls(false)
 				.SetAllowProxyCreation(true)
 				.SetCheckDeleted(false)
-				.SetNakedEntityReturned(false);
+				.SetNakedEntityReturned(false)
+			  .SetLoadEntity(true);
 
 			InternalLoadNullable = new LoadType("InternalLoadNullable")
 				.SetAllowNulls(true)
 				.SetAllowProxyCreation(false)
 				.SetCheckDeleted(false)
-				.SetNakedEntityReturned(false);
+				.SetNakedEntityReturned(false)
+			  .SetLoadEntity(true);
+
+			PersistentCacheOnly = new LoadType("PersistentCacheOnly")
+				.SetAllowNulls(true)
+				.SetAllowProxyCreation(false)
+				.SetCheckDeleted(false)
+				.SetNakedEntityReturned(false)
+			  .SetLoadEntity(false);
 		}
 	}
 }

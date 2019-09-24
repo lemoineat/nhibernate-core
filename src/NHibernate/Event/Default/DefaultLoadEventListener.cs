@@ -70,7 +70,11 @@ namespace NHibernate.Event.Default
 			EntityKey keyToLoad = source.GenerateEntityKey(@event.EntityId, persister);
 			try
 			{
-				if (loadType.IsNakedEntityReturned)
+				if (!loadType.LoadEntity)
+        {
+          @event.Result = GetExistingProxyOrCache(@event, persister, keyToLoad, loadType);
+        }
+        else if (loadType.IsNakedEntityReturned)
 				{
 					//do not return a proxy!
 					//(this option indicates we are initializing a proxy)
@@ -170,6 +174,50 @@ namespace NHibernate.Event.Default
 				}
 			}
 		}
+
+    /// <summary>
+    /// Based on configured options, will either return a pre-existing proxy,
+    /// or return null
+    /// </summary>
+    /// <returns> The result of the operation.</returns>
+    protected virtual object GetExistingProxyOrCache(LoadEvent @event, IEntityPersister persister, EntityKey keyToLoad, LoadType options)
+    {
+      if (log.IsDebugEnabled())
+      {
+        log.Debug("loading entity: " + MessageHelper.InfoString(persister, @event.EntityId, @event.Session.Factory));
+      }
+
+      IPersistenceContext persistenceContext = @event.Session.PersistenceContext;
+
+      object proxy = persistenceContext.GetProxy(keyToLoad);
+      if (null != proxy)
+      {
+        return proxy;
+      }
+      else
+      {
+        object existing = persistenceContext.GetEntity(keyToLoad);
+        if (existing != null)
+        {
+          // return existing object or initialized proxy (unless deleted)
+          log.Debug("entity found in session cache");
+          if (options.IsCheckDeleted)
+          {
+            EntityEntry entry = persistenceContext.GetEntry(existing);
+            Status status = entry.Status;
+            if (status == Status.Deleted || status == Status.Gone)
+            {
+              return null;
+            }
+          }
+          return existing;
+        }
+        else
+        {
+          return null;
+        }
+      }
+    }
 
 		/// <summary>
 		/// Given that there is a pre-existing proxy.

@@ -74,6 +74,11 @@ namespace NHibernate.Mapping
 		{
 			get { return PropertyIterator; }
 		}
+		
+		public override IEnumerable<Property> SecondaryKeyClosureIterator
+		{
+		  get { return SecondaryKeyIterator; }
+		}
 
 		/// <summary>
 		/// Gets an <see cref="ICollection"/> of <see cref="Table"/> objects that this 

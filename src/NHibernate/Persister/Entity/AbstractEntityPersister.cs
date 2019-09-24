@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics;
 using System.Text;
 using NHibernate.AdoNet;
 using NHibernate.Cache;
@@ -125,8 +126,13 @@ namespace NHibernate.Persister.Entity
 		private readonly Dictionary<System.Type, string> entityNameBySubclass = new Dictionary<System.Type, string>();
 
 		private readonly string[] rootTableKeyColumnNames;
+    private readonly int keyColumnSpan;
+    private readonly string[] rootTableIdentifierColumnNames;
 		private readonly string[] identifierAliases;
 		private readonly int identifierColumnSpan;
+    private readonly string[] rootTableSecondaryKeyColumnNames;
+    private readonly int secondaryKeyColumnSpan;
+    private readonly IType[] rootTableSecondaryKeyTypes;
 		private readonly string versionColumnName;
 		private readonly bool hasFormulaProperties;
 		private readonly int batchSize;
@@ -291,8 +297,13 @@ namespace NHibernate.Persister.Entity
 			#region IDENTIFIER
 
 			identifierColumnSpan = persistentClass.Identifier.ColumnSpan;
-			rootTableKeyColumnNames = new string[identifierColumnSpan];
+      rootTableIdentifierColumnNames = new string[identifierColumnSpan];
+      keyColumnSpan = identifierColumnSpan + persistentClass.SecondaryKeyColumnSpan;
+      secondaryKeyColumnSpan = persistentClass.SecondaryKeyColumnSpan;
+      rootTableKeyColumnNames = new string[keyColumnSpan];
 			identifierAliases = new string[identifierColumnSpan];
+      rootTableSecondaryKeyColumnNames = new string[secondaryKeyColumnSpan];
+      rootTableSecondaryKeyTypes = new IType[secondaryKeyColumnSpan];
 
 			rowIdName = persistentClass.RootTable.RowId;
 
@@ -302,10 +313,26 @@ namespace NHibernate.Persister.Entity
 			int i = 0;
 			foreach (Column col in persistentClass.Identifier.ColumnIterator)
 			{
-				rootTableKeyColumnNames[i] = col.GetQuotedName(factory.Dialect);
+        string columnName = col.GetQuotedName(factory.Dialect);
+        rootTableIdentifierColumnNames[i] = columnName;
+        rootTableKeyColumnNames[i] = columnName;
 				identifierAliases[i] = col.GetAlias(factory.Dialect, persistentClass.RootTable);
 				i++;
 			}
+      int j = 0;
+      foreach (Property property in persistentClass.SecondaryKeyIterator)
+      {
+        Debug.Assert (1 == property.ColumnSpan); // Restriction: a secondary key property is on a unique column
+        foreach (Column col in property.ColumnIterator) {
+          string columnName = col.GetQuotedName(factory.Dialect);
+          rootTableKeyColumnNames[i] = columnName;
+          rootTableSecondaryKeyColumnNames[j] = columnName;
+          ++i;
+        }
+        rootTableSecondaryKeyTypes[j] = property.Type;
+//        rootTableSecondaryKeyTypes[j] = new Int32Type (); // Restriction: Hard-coded for the moment, a secondary key is an integer
+        ++j;
+      }
 
 			#endregion
 
@@ -570,6 +597,16 @@ namespace NHibernate.Persister.Entity
 			get { return rootTableKeyColumnNames; }
 		}
 
+    public string[] RootTableSecondaryKeyColumnNames
+    {
+      get { return rootTableSecondaryKeyColumnNames; }
+    }
+
+    public IType[] RootTableSecondaryKeyTypes
+    {
+      get { return rootTableSecondaryKeyTypes; }
+    }
+
 		protected internal SqlCommandInfo[] SQLUpdateByRowIdStrings
 		{
 			get
@@ -682,7 +719,7 @@ namespace NHibernate.Persister.Entity
 
 		public virtual string[] IdentifierColumnNames
 		{
-			get { return rootTableKeyColumnNames; }
+			get { return rootTableIdentifierColumnNames; }
 		}
 
 		protected int IdentifierColumnSpan
@@ -740,7 +777,7 @@ namespace NHibernate.Persister.Entity
 
 		public virtual string[] RootTableIdentifierColumnNames
 		{
-			get { return RootTableKeyColumnNames; }
+			get { return rootTableIdentifierColumnNames; }
 		}
 
 		protected internal string[] PropertySubclassNames
@@ -804,7 +841,7 @@ namespace NHibernate.Persister.Entity
 			{
 				if (identitySelectString == null)
 					identitySelectString =
-						Factory.Dialect.GetIdentitySelectString(GetKeyColumns(0)[0], GetTableName(0),
+						Factory.Dialect.GetIdentitySelectString(GetIdentifierColumns(0)[0], GetTableName(0),
 						                                        IdentifierType.SqlTypes(Factory)[0].DbType);
 				return identitySelectString;
 			}
@@ -917,8 +954,13 @@ namespace NHibernate.Persister.Entity
 
 		public string[] KeyColumnNames
 		{
-			get { return IdentifierColumnNames; }
-		}
+      get { return rootTableKeyColumnNames; }
+    }
+    
+    public string[] SecondaryKeyColumnNames
+    {
+      get { return rootTableSecondaryKeyColumnNames; }
+    }
 
 		// Since v5.2
 		[Obsolete("Use KeyColumnNames instead")]
@@ -962,6 +1004,16 @@ namespace NHibernate.Persister.Entity
 			get { return entityMetamodel.PropertyNames; }
 		}
 
+    public virtual bool[] PropertyIsSecondaryKey
+    {
+      get { return entityMetamodel.PropertyIsSecondaryKey; }
+    }
+    
+    public virtual bool HasSecondaryKey
+    {
+      get { return entityMetamodel.HasSecondaryKey; }
+    }
+    
 		public virtual IType[] PropertyTypes
 		{
 			get { return entityMetamodel.PropertyTypes; }
@@ -1095,6 +1147,8 @@ namespace NHibernate.Persister.Entity
 
 		protected abstract string GetTableName(int table);
 
+    protected abstract string[] GetIdentifierColumns(int table);
+    
 		protected abstract string[] GetKeyColumns(int table);
 
 		protected abstract bool IsPropertyOfTable(int property, int table);
@@ -2045,9 +2099,23 @@ namespace NHibernate.Persister.Entity
 			}
 		}
 
-		public virtual void Lock(object id, object version, object obj, LockMode lockMode, ISessionImplementor session)
+		public virtual void Lock(object id, object version, object obj, EntityEntry entry, LockMode lockMode, ISessionImplementor session)
 		{
-			GetLocker(lockMode).Lock(id, version, obj, session);
+      object[] secondaryKeyPropertyValues = new object[this.secondaryKeyColumnSpan];
+      if (HasSecondaryKey)
+      {
+        int j = 0;
+        for (int i = 0; i < PropertySpan; i++)
+        {
+          if (PropertyIsSecondaryKey[i])
+          {
+            string propertyName = PropertyNames [i];
+            Debug.Assert (j < this.secondaryKeyColumnSpan);
+            secondaryKeyPropertyValues [j++] = entry.GetLoadedValue (propertyName);
+          }
+        }
+      }
+			GetLocker(lockMode).Lock(id, version, this.rootTableSecondaryKeyTypes, secondaryKeyPropertyValues, obj, session);
 		}
 
 		public virtual string GetRootTableAlias(string drivingAlias)
@@ -2553,26 +2621,33 @@ namespace NHibernate.Persister.Entity
 			if (useRowId)
 				updateBuilder.SetIdentityColumn(new[] {rowIdName}, NHibernateUtil.Int32); //TODO: eventually, rowIdName[j]
 			else
-				updateBuilder.SetIdentityColumn(GetKeyColumns(j), GetIdentifierType(j));
+				updateBuilder.SetIdentityColumn(GetIdentifierColumns(j), GetIdentifierType(j));
 
 			bool hasColumns = false;
 			for (int i = 0; i < entityMetamodel.PropertySpan; i++)
 			{
-				if (includeProperty[i] && IsPropertyOfTable(i, j))
+				if (IsPropertyOfTable(i, j))
 				{
-					// this is a property of the table, which we are updating
-					try
+					if (PropertyIsSecondaryKey[i])
 					{
-						updateBuilder.AddColumns(GetPropertyColumnNames(i), propertyColumnUpdateable[i], PropertyTypes[i]);
+            updateBuilder.AddSecondaryKeyColumn(GetPropertyColumnNames(i), PropertyTypes[i]);
 					}
-					catch (ArgumentException arex)
-					{
-						throw new MappingException(
-							$"Unable to build the update statement for class {entityMetamodel.Name}: " +
-							$"a failure occured when adding the property {PropertyNames[i]}",
-							arex);
-					}
-					hasColumns = hasColumns || GetPropertyColumnSpan(i) > 0;
+				  else if (includeProperty[i])
+				  {
+					  // this is a property of the table, which we are updating
+					  try
+  					{
+	  					updateBuilder.AddColumns(GetPropertyColumnNames(i), propertyColumnUpdateable[i], PropertyTypes[i]);
+		  			}
+	  				catch (ArgumentException arex)
+		  			{
+			  			throw new MappingException(
+		  					$"Unable to build the update statement for class {entityMetamodel.Name}: " +
+			  				$"a failure occured when adding the property {PropertyNames[i]}",
+				  			arex);
+			  		}
+			  		hasColumns = hasColumns || GetPropertyColumnSpan(i) > 0;
+			  	}
 				}
 			}
 
@@ -2602,23 +2677,23 @@ namespace NHibernate.Persister.Entity
 				{
 					bool include = includeInWhere[i] && IsPropertyOfTable(i, j) && versionability[i];
 					if (include)
-					{
-						// this property belongs to the table, and it is not specifically
-						// excluded from optimistic locking by optimistic-lock="false"
-						string[] _propertyColumnNames = GetPropertyColumnNames(i);
-						bool[] propertyNullness = types[i].ToColumnNullness(oldFields[i], Factory);
-						SqlType[] sqlt = types[i].SqlTypes(Factory);
-						for (int k = 0; k < propertyNullness.Length; k++)
-						{
-							if (propertyNullness[k])
-							{
-								updateBuilder.AddWhereFragment(_propertyColumnNames[k], sqlt[k], " = ");
-							}
-							else
-							{
-								updateBuilder.AddWhereFragment(_propertyColumnNames[k] + " is null");
-							}
-						}
+  				{
+	  				// this property belongs to the table, and it is not specifically
+		  			// excluded from optimistic locking by optimistic-lock="false"
+			  		string[] _propertyColumnNames = GetPropertyColumnNames(i);
+				  	bool[] propertyNullness = types[i].ToColumnNullness(oldFields[i], Factory);
+			  		SqlType[] sqlt = types[i].SqlTypes(Factory);
+				  	for (int k = 0; k < propertyNullness.Length; k++)
+		  			{
+			  			if (propertyNullness[k])
+				  		{
+					  		updateBuilder.AddWhereFragment(_propertyColumnNames[k], sqlt[k], " = ");
+				  		}
+				  		else
+				  		{
+				  			updateBuilder.AddWhereFragment(_propertyColumnNames[k] + " is null");
+					  	}
+			  		}
 					}
 				}
 			}
@@ -2657,7 +2732,7 @@ namespace NHibernate.Persister.Entity
 			// add normal properties
 			for (int i = 0; i < entityMetamodel.PropertySpan; i++)
 			{
-				if (includeProperty[i] && IsPropertyOfTable(i, j))
+				if ((includeProperty[i] || PropertyIsSecondaryKey[i]) && IsPropertyOfTable(i, j))
 				{
 					// this property belongs on the table and is to be inserted
 					try
@@ -2690,16 +2765,17 @@ namespace NHibernate.Persister.Entity
 				}
 			}
 
-			// add the primary key
+      // add the keys (primary and secondary)
 			try
 			{
 				if (j == 0 && identityInsert)
 				{
-					builder.AddIdentityColumn(GetKeyColumns(0)[0]);
+					builder.AddIdentityColumn(GetIdentifierColumns(0)[0]);
 				}
 				else
 				{
-					builder.AddColumns(GetKeyColumns(j), null, GetIdentifierType(j));
+          string[] identifierColumns = GetIdentifierColumns(j);
+					builder.AddColumns(identifierColumns, null, GetIdentifierType(j));
 				}
 			}
 			catch (ArgumentException arex)
@@ -2757,7 +2833,19 @@ namespace NHibernate.Persister.Entity
 			var deleteBuilder = new SqlDeleteBuilder(Factory.Dialect, Factory);
 			deleteBuilder
 				.SetTableName(GetTableName(j))
-				.SetIdentityColumn(GetKeyColumns(j), GetIdentifierType(j));
+				.SetIdentityColumn(GetIdentifierColumns(j), GetIdentifierType(j));
+      // TODO: secondary keys (with GetKeyColumns)
+
+      if (HasSecondaryKey)
+      {
+        for (int i = 0; i < entityMetamodel.PropertySpan; i++)
+        {
+          if (PropertyIsSecondaryKey[i])
+          {
+            deleteBuilder.AddSecondaryKeyColumn(GetPropertyColumnNames(i), PropertyTypes[i]);
+          }
+        }
+      }
 
 			// NH: Only add version to where clause if optimistic lock mode is Version
 			if (j == 0 && IsVersioned && entityMetamodel.OptimisticLockMode == Versioning.OptimisticLock.Version)
@@ -3159,7 +3247,7 @@ namespace NHibernate.Persister.Entity
 				{
 					//if all fields are null, we might need to delete existing row
 					isRowToUpdate = true;
-					Delete(tableId, oldVersion, j, obj, SqlDeleteStrings[j], session, null);
+					Delete(tableId, fields, oldVersion, j, obj, SqlDeleteStrings[j], session, null);
 				}
 				else
 				{
@@ -3208,6 +3296,26 @@ namespace NHibernate.Persister.Entity
 					//Now write the values of fields onto the prepared statement
 					index = Dehydrate(id, fields, rowId, includeProperty, propertyColumnUpdateable, j, statement, session, index);
 
+          // Secondary key
+          if (HasSecondaryKey)
+          {
+            for (int i = 0; i < entityMetamodel.PropertySpan; i++)
+            {
+              if (PropertyIsSecondaryKey[i] && IsPropertyOfTable(i, j))
+              {
+                try
+                {
+                  PropertyTypes[i].NullSafeSet(statement, fields[i], index, session);
+                  ++index;
+                }
+                catch (Exception ex)
+                {
+                  throw new PropertyValueException("Error dehydrating property value for", EntityName, entityMetamodel.PropertyNames[i], ex);
+                }
+              }
+            }
+          }
+          
 					// Write any appropriate versioning conditional parameters
 					if (useVersion && Versioning.OptimisticLock.Version == entityMetamodel.OptimisticLockMode)
 					{
@@ -3289,7 +3397,7 @@ namespace NHibernate.Persister.Entity
 		/// <summary>
 		/// Perform an SQL DELETE
 		/// </summary>
-		public void Delete(object id, object version, int j, object obj, SqlCommandInfo sql, ISessionImplementor session,
+		public void Delete(object id, object[] fields, object version, int j, object obj, SqlCommandInfo sql, ISessionImplementor session,
 											 object[] loadedState)
 		{
 			//check if the id should come from another column
@@ -3342,6 +3450,26 @@ namespace NHibernate.Persister.Entity
 					property.Type.NullSafeSet(statement, tableId, index, session);
 					index += property.Type.GetColumnSpan(factory);
 
+          // Secondary key
+          if (HasSecondaryKey)
+          {
+            for (int i = 0; i < entityMetamodel.PropertySpan; i++)
+            {
+              if (PropertyIsSecondaryKey[i] && IsPropertyOfTable(i, j))
+              {
+                try
+                {
+                  PropertyTypes[i].NullSafeSet(statement, fields[i], index, session);
+                  ++index;
+                }
+                catch (Exception ex)
+                {
+                  throw new PropertyValueException("Error dehydrating property value for", EntityName, entityMetamodel.PropertyNames[i], ex);
+                }
+              }
+            }
+          }
+          
 					// We should use the _current_ object state (ie. after any updates that occurred during flush)
 					if (useVersion)
 					{
@@ -3535,7 +3663,7 @@ namespace NHibernate.Persister.Entity
 			}
 		}
 
-		public void Delete(object id, object version, object obj, ISessionImplementor session)
+		public void Delete(object id, object[] fields, object version, object obj, ISessionImplementor session)
 		{
 			int span = TableSpan;
 			bool isImpliedOptimisticLocking = !entityMetamodel.IsVersioned &&
@@ -3570,7 +3698,7 @@ namespace NHibernate.Persister.Entity
 
 			for (int j = span - 1; j >= 0; j--)
 			{
-				Delete(id, version, j, obj, deleteStrings[j], session, loadedState);
+				Delete(id, fields, version, j, obj, deleteStrings[j], session, loadedState);
 			}
 		}
 
@@ -3583,7 +3711,8 @@ namespace NHibernate.Persister.Entity
 			{
 				SqlDeleteBuilder delete = new SqlDeleteBuilder(Factory.Dialect, Factory)
 					.SetTableName(GetTableName(j))
-					.SetIdentityColumn(GetKeyColumns(j), GetIdentifierType(j));
+					.SetIdentityColumn(GetIdentifierColumns(j), GetIdentifierType(j));
+        // TODO: use GetKeyColumns
 
 				if (Factory.Settings.IsCommentsEnabled)
 				{
@@ -4795,6 +4924,36 @@ namespace NHibernate.Persister.Entity
 			}
 		}
 
+    private SqlType[] idSecondaryKeyAndVersionSqlTypes;
+    public virtual SqlType[] IdSecondaryKeyAndVersionSqlTypes
+    {
+      get
+      {
+        if(idSecondaryKeyAndVersionSqlTypes == null)
+        {
+          if (!HasSecondaryKey)
+          {
+            idSecondaryKeyAndVersionSqlTypes = IdAndVersionSqlTypes;
+          }
+          else
+          {
+            idSecondaryKeyAndVersionSqlTypes = IdentifierType.SqlTypes (factory);
+            foreach (IType type in rootTableSecondaryKeyTypes)
+            {
+              idSecondaryKeyAndVersionSqlTypes = ArrayHelper.Join(idSecondaryKeyAndVersionSqlTypes,
+                                                                  type.SqlTypes (factory));
+            }
+            if (IsVersioned)
+            {
+              idSecondaryKeyAndVersionSqlTypes = ArrayHelper.Join(idSecondaryKeyAndVersionSqlTypes,
+                                                                  VersionType.SqlTypes(factory));
+            }
+          }
+        }
+        return idSecondaryKeyAndVersionSqlTypes;
+      }
+    }
+    
 		public string GetInfoString()
 		{
 			return MessageHelper.InfoString(this);

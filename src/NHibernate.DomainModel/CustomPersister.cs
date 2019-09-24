@@ -318,7 +318,7 @@ namespace NHibernate.DomainModel
 			return clone;
 		}
 
-		public void Lock(object id, object version, object obj, LockMode lockMode, ISessionImplementor session)
+		public void Lock(object id, object version, object obj, NHibernate.Engine.EntityEntry entry, LockMode lockMode, ISessionImplementor session)
 		{
 			throw new NotSupportedException();
 		}
@@ -333,7 +333,7 @@ namespace NHibernate.DomainModel
 			throw new NotSupportedException();
 		}
 
-		public void Delete(object id, object version, object obj, ISessionImplementor session)
+		public void Delete(object id, object[] fields, object version, object obj, ISessionImplementor session)
 		{
 			Instances.Remove(id);
 		}

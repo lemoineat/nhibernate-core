@@ -4,7 +4,7 @@ using NHibernate.Mapping.ByCode.Impl;
 namespace NHibernate.Mapping.ByCode
 {
 	// 6.0 TODO: inherit from IColumnsAndFormulasMapper
-	public interface IManyToOneMapper : IEntityPropertyMapper, IColumnsMapper
+	public interface IManyToOneMapper : IEntityPropertyMapper, IColumnsMapper, ISecondaryKeyMapper
 	{
 		/// <summary>
 		/// Force the many-to-one to a different type than the one of the property.

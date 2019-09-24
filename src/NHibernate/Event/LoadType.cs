@@ -9,6 +9,7 @@ namespace NHibernate.Event
 		private bool checkDeleted;
 		private bool allowProxyCreation;
 		private bool exactPersister;
+		private bool loadEntity = true;
 
 		internal LoadType(string name)
 		{
@@ -78,6 +79,17 @@ namespace NHibernate.Event
 		{
 			// NH Specific : NH-295 Allow strongly typed from cache
 			this.exactPersister = exactPersister;
+			return this;
+		}
+
+		public bool LoadEntity
+		{
+			get { return loadEntity; }
+		}
+
+		internal LoadType SetLoadEntity(bool loadEntity)
+		{
+			this.loadEntity = loadEntity;
 			return this;
 		}
 

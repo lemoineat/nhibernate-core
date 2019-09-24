@@ -7,6 +7,7 @@ using NHibernate.Exceptions;
 using NHibernate.Impl;
 using NHibernate.Persister.Entity;
 using NHibernate.SqlCommand;
+using NHibernate.Type;
 
 namespace NHibernate.Dialect.Lock
 {
@@ -54,8 +55,17 @@ namespace NHibernate.Dialect.Lock
 			SqlUpdateBuilder update = new SqlUpdateBuilder(factory.Dialect, factory);
 			update.SetTableName(lockable.RootTableName);
 			update.SetIdentityColumn(lockable.RootTableIdentifierColumnNames, lockable.IdentifierType);
+			for  (int i = 0; i < lockable.RootTableSecondaryKeyColumnNames.Length; ++i)
+			{
+			  update.AddWhereFragment (new string[] {lockable.RootTableSecondaryKeyColumnNames[i]},
+			                           lockable.RootTableSecondaryKeyTypes[i], "=");
+			}
 			update.SetVersionColumn(new string[] { lockable.VersionColumnName }, lockable.VersionType);
 			update.AddColumns(new string[] { lockable.VersionColumnName }, null, lockable.VersionType);
+			for  (int i = 0; i < lockable.RootTableSecondaryKeyColumnNames.Length; ++i)
+			{
+			  //int k = 0; // TODO
+			}
 			if (factory.Settings.IsCommentsEnabled)
 			{
 				update.SetComment(lockMode + " lock " + lockable.EntityName);
@@ -65,7 +75,7 @@ namespace NHibernate.Dialect.Lock
 
 		#region ILockingStrategy Members
 
-		public void Lock(object id, object version, object obj, ISessionImplementor session)
+		public void Lock(object id, object version, IType[] secondaryKeyTypes, object[] secondaryKeyValues, object obj, ISessionImplementor session)
 		{
 			if (!lockable.IsVersioned)
 			{
@@ -75,7 +85,7 @@ namespace NHibernate.Dialect.Lock
 			ISessionFactoryImplementor factory = session.Factory;
 			try
 			{
-				var st = session.Batcher.PrepareCommand(CommandType.Text, sql, lockable.IdAndVersionSqlTypes);
+				var st = session.Batcher.PrepareCommand(CommandType.Text, sql, lockable.IdSecondaryKeyAndVersionSqlTypes);
 				try
 				{
 					lockable.VersionType.NullSafeSet(st, version, 1, session);
@@ -84,9 +94,14 @@ namespace NHibernate.Dialect.Lock
 					lockable.IdentifierType.NullSafeSet(st, id, offset, session);
 					offset += lockable.IdentifierType.GetColumnSpan(factory);
 
+					for (int i = 0; i < secondaryKeyTypes.Length; ++i)
+					{
+					  secondaryKeyTypes [i].NullSafeSet(st, secondaryKeyValues[i], offset++, session);
+					}
+
 					if (lockable.IsVersioned)
 					{
-						lockable.VersionType.NullSafeSet(st, version, offset, session);
+						lockable.VersionType.NullSafeSet(st, version, offset++, session);
 					}
 
 					int affected = session.Batcher.ExecuteNonQuery(st);

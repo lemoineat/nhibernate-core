@@ -12,6 +12,7 @@ namespace NHibernate.Tuple
 	/// </remarks>
 	public class StandardProperty : Property
 	{
+    private readonly bool secondaryKey;
 		private readonly bool lazy;
 		private readonly bool insertable;
 		private readonly bool updateable;
@@ -29,6 +30,7 @@ namespace NHibernate.Tuple
 		/// <param name="name">The name by which the property can be referenced within
 		/// its owner.</param>
 		/// <param name="type">The Hibernate Type of this property.</param>
+    /// <param name="secondaryKey">Is this property a secondary key</param>
 		/// <param name="lazy">Should this property be handled lazily?</param>
 		/// <param name="insertable">Is this property an insertable value?</param>
 		/// <param name="updateable">Is this property an updateable value?</param>
@@ -42,6 +44,7 @@ namespace NHibernate.Tuple
 		public StandardProperty(
 			String name,
 			IType type,
+      bool secondaryKey,
 			bool lazy,
 			bool insertable,
 			bool updateable,
@@ -54,9 +57,15 @@ namespace NHibernate.Tuple
 			FetchMode? fetchMode)
 			: base(name, type)
 		{
+      this.secondaryKey = secondaryKey;
 			this.lazy = lazy;
 			this.insertable = insertable;
-			this.updateable = updateable;
+      if (secondaryKey) {
+        this.updateable = false;
+      }
+      else {
+        this.updateable = updateable;
+      }
 			this.insertGenerated = insertGenerated;
 			this.updateGenerated = updateGenerated;
 			this.nullable = nullable;
@@ -65,6 +74,11 @@ namespace NHibernate.Tuple
 			this.cascadeStyle = cascadeStyle;
 			this.fetchMode = fetchMode;
 		}
+
+    public bool IsSecondaryKey
+    {
+      get { return secondaryKey; }
+    }
 
 		public bool IsLazy
 		{

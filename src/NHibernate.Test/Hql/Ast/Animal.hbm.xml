@@ -10,7 +10,7 @@
 		</id>
 		<property name="description"/>
 		<property name="bodyWeight" column="body_weight"/>
-		<many-to-one name="mother" column="mother_id"/>
+		<many-to-one name="mother" column="mother_id" secondary_key="true"/>
 		<many-to-one name="father" column="father_id"/>
 		<many-to-one name="zoo" column="zoo_id"/>
 		<property name="serialNumber"/>

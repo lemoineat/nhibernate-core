@@ -535,7 +535,8 @@ namespace NHibernate.Impl
 				IEntityPersister persister = GetEntityPersister(entityName, entity);
 				object id = persister.GetIdentifier(entity);
 				object version = persister.GetVersion(entity);
-				persister.Delete(id, version, entity, this);
+				object[] state = persister.GetPropertyValues(entity);
+				persister.Delete(id, state, version, entity, this);
 			}
 		}
 

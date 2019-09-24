@@ -47,7 +47,7 @@ namespace NHibernate.Tuple
 			CascadeStyle cascadeStyle,
 			VersionValue unsavedValue)
 			: base(
-				name, type, lazy, insertable, updateable, insertGenerated, updateGenerated, nullable, checkable, versionable,
+				name, type, false, lazy, insertable, updateable, insertGenerated, updateGenerated, nullable, checkable, versionable,
 				cascadeStyle, null)
 		{
 			this.unsavedValue = unsavedValue;

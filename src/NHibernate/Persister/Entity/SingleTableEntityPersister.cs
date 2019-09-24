@@ -23,6 +23,7 @@ namespace NHibernate.Persister.Entity
 		private readonly string[] qualifiedTableNames;
 		private readonly bool[] isInverseTable;
 		private readonly bool[] isNullableTable;
+		private readonly string[][] identifierColumnNames;
 		private readonly string[][] keyColumnNames;
 		private readonly bool[] cascadeDeleteEnabled;
 		private readonly bool hasSequentialSelects; // TODO 6.0: Remove
@@ -87,13 +88,15 @@ namespace NHibernate.Persister.Entity
 			qualifiedTableNames = new string[joinSpan];
 			isInverseTable = new bool[joinSpan];
 			isNullableTable = new bool[joinSpan];
+			identifierColumnNames = new string[joinSpan][];
 			keyColumnNames = new string[joinSpan][];
 			Table table = persistentClass.RootTable;
 			identifierTypes[0] = IdentifierType;
 			qualifiedTableNames[0] =table.GetQualifiedName(factory.Dialect, factory.Settings.DefaultCatalogName, factory.Settings.DefaultSchemaName);
 			isInverseTable[0] = false;
 			isNullableTable[0] = false;
-			keyColumnNames[0] = IdentifierColumnNames;
+			identifierColumnNames[0] = IdentifierColumnNames;
+			keyColumnNames[0] = KeyColumnNames;
 			cascadeDeleteEnabled = new bool[joinSpan];
 
 			// Custom sql
@@ -110,7 +113,7 @@ namespace NHibernate.Persister.Entity
 			customSQLInsert[0] = persistentClass.CustomSQLInsert;
 			insertCallable[0] = customSQLInsert[0] != null && persistentClass.IsCustomInsertCallable;
 			insertResultCheckStyles[0] = persistentClass.CustomSQLInsertCheckStyle
-																	 ?? ExecuteUpdateResultCheckStyle.DetermineDefault(customSQLInsert[0], insertCallable[0]);
+																	 ?? ExecuteUpdateResultCheckStyle.DetermineDefaultInsert(customSQLInsert[0], insertCallable[0]);
 			customSQLUpdate[0] = persistentClass.CustomSQLUpdate;
 			updateCallable[0] = customSQLUpdate[0] != null && persistentClass.IsCustomUpdateCallable;
 			updateResultCheckStyles[0] = persistentClass.CustomSQLUpdateCheckStyle
@@ -136,7 +139,7 @@ namespace NHibernate.Persister.Entity
 				insertCallable[j] = customSQLInsert[j] != null && join.IsCustomInsertCallable;
 				insertResultCheckStyles[j] = join.CustomSQLInsertCheckStyle
 																		 ??
-																		 ExecuteUpdateResultCheckStyle.DetermineDefault(customSQLInsert[j], insertCallable[j]);
+																		 ExecuteUpdateResultCheckStyle.DetermineDefaultInsert(customSQLInsert[j], insertCallable[j]);
 				customSQLUpdate[j] = join.CustomSQLUpdate;
 				updateCallable[j] = customSQLUpdate[j] != null && join.IsCustomUpdateCallable;
 				updateResultCheckStyles[j] = join.CustomSQLUpdateCheckStyle
@@ -149,6 +152,7 @@ namespace NHibernate.Persister.Entity
 																		 ExecuteUpdateResultCheckStyle.DetermineDefault(customSQLDelete[j], deleteCallable[j]);
 
 				keyColumnNames[j] = join.Key.ColumnIterator.OfType<Column>().Select(col => col.GetQuotedName(factory.Dialect)).ToArray();
+				identifierColumnNames[j] = join.Key.ColumnIterator.OfType<Column>().Select(col => col.GetQuotedName(factory.Dialect)).ToArray();
 
 				j++;
 			}
@@ -521,6 +525,11 @@ namespace NHibernate.Persister.Entity
 		protected override string GetTableName(int table)
 		{
 			return qualifiedTableNames[table];
+		}
+
+		protected override string[] GetIdentifierColumns(int table)
+		{
+			return identifierColumnNames[table];
 		}
 
 		protected override string[] GetKeyColumns(int table)

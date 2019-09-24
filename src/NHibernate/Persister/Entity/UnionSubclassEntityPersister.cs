@@ -45,6 +45,7 @@ namespace NHibernate.Persister.Entity
 			SqlString sql;
 			bool callable;
 			ExecuteUpdateResultCheckStyle checkStyle;
+			ExecuteUpdateResultCheckStyle insertCheckStyle;
 
 			sql = persistentClass.CustomSQLInsert;
 			callable = sql != null && persistentClass.IsCustomInsertCallable;
@@ -52,9 +53,13 @@ namespace NHibernate.Persister.Entity
 							? ExecuteUpdateResultCheckStyle.Count
 							: (persistentClass.CustomSQLInsertCheckStyle
 							   ?? ExecuteUpdateResultCheckStyle.DetermineDefault(sql, callable));
+			insertCheckStyle = sql == null
+			             	? ExecuteUpdateResultCheckStyle.None
+			             	: (persistentClass.CustomSQLInsertCheckStyle
+			             	   ?? ExecuteUpdateResultCheckStyle.DetermineDefaultInsert(sql, callable));
 			customSQLInsert = new SqlString[] { sql };
 			insertCallable = new bool[] { callable };
-			insertResultCheckStyles = new ExecuteUpdateResultCheckStyle[] { checkStyle };
+			insertResultCheckStyles = new ExecuteUpdateResultCheckStyle[] { insertCheckStyle };
 
 			sql = persistentClass.CustomSQLUpdate;
 			callable = sql != null && persistentClass.IsCustomUpdateCallable;
@@ -252,6 +257,11 @@ namespace NHibernate.Persister.Entity
 		protected override string GetTableName(int table)
 		{
 			return tableName;
+		}
+
+		protected override string[] GetIdentifierColumns(int table)
+		{
+			return IdentifierColumnNames;
 		}
 
 		protected override string[] GetKeyColumns(int table)

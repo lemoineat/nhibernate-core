@@ -104,6 +104,7 @@ namespace NHibernate.Tuple
 			return new StandardProperty(
 				property.Name,
 				type,
+				property.IsSecondaryKey,
 				lazyAvailable && property.IsLazy,
 				property.IsInsertable,
 				property.IsUpdateable,

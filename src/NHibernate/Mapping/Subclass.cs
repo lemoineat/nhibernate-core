@@ -61,6 +61,11 @@ namespace NHibernate.Mapping
 			get { return Superclass.PropertyClosureIterator.Concat(PropertyIterator); }
 		}
 
+		public override IEnumerable<Property> SecondaryKeyClosureIterator
+		{
+		  get { return new JoinedEnumerable<Property>(Superclass.SecondaryKeyClosureIterator, SecondaryKeyIterator); }
+		}
+
 		/// <summary>
 		/// Gets an <see cref="ICollection"/> of <see cref="Table"/> objects that this 
 		/// mapped class reads from and writes to.

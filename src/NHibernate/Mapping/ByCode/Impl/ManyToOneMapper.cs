@@ -252,5 +252,12 @@ namespace NHibernate.Mapping.ByCode.Impl
 		}
 
 		#endregion
+    
+    #region Implementation of ISecondaryKeyMapper
+    public void SecondaryKey(bool isSecondaryKey)
+    {
+      _manyToOne.secondarykey = isSecondaryKey;
+    }
+    #endregion // Implementation of ISecondaryKeyMapper
 	}
 }

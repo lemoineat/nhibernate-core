@@ -724,6 +724,11 @@ namespace NHibernate.Cfg.MappingSchema {
         public bool optimisticlock;
         
         /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute("secondary-key")]
+        [System.ComponentModel.DefaultValueAttribute(false)]
+        public bool secondarykey;
+        
+        /// <remarks/>
         [System.Xml.Serialization.XmlAttributeAttribute("foreign-key")]
         public string foreignkey;
         
@@ -757,6 +762,7 @@ namespace NHibernate.Cfg.MappingSchema {
             this.update = true;
             this.insert = true;
             this.optimisticlock = true;
+            this.secondarykey = false;
             this.notfound = HbmNotFoundMode.Exception;
         }
     }

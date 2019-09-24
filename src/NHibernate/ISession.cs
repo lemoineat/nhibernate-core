@@ -391,6 +391,57 @@ namespace NHibernate
 		/// <param name="obj">a persistent instance</param>
 		void Evict(Object obj);
 
+
+		/// <summary>
+		/// Return the persistent instance of the given entity class with the given identifier,
+		/// assuming that the instance exists.
+		/// </summary>
+		/// <remarks>
+		/// You should not use this method to determine if an instance exists (use a query or
+		/// <see cref="Get(System.Type, object)" /> instead). Use this only to retrieve an instance
+		/// that you assume exists, where non-existence would be an actual error.
+		/// </remarks>
+		/// <param name="theType">A persistent class</param>
+		/// <param name="id">A valid identifier of an existing persistent instance of the class</param>
+		/// <returns>The persistent instance or proxy</returns>
+		object GetPersistentCacheOnly(System.Type theType, object id);
+
+		/// <summary>
+		/// Return the persistent instance of the given entity class with the given identifier,
+		/// assuming that the instance exists.
+		/// </summary>
+		/// <remarks>
+		/// You should not use this method to determine if an instance exists (use a query or
+		/// <see cref="Get{T}(object)" /> instead). Use this only to retrieve an instance that you
+		/// assume exists, where non-existence would be an actual error.
+		/// </remarks>
+		/// <typeparam name="T">A persistent class</typeparam>
+		/// <param name="id">A valid identifier of an existing persistent instance of the class</param>
+		/// <returns>The persistent instance or proxy</returns>
+		T GetPersistentCacheOnly<T>(object id);
+
+		/// <summary>
+		/// Return the persistent instance of the given <paramref name="entityName"/> with the given identifier,
+		/// assuming that the instance exists.
+		/// </summary>
+		/// <param name="entityName">The entity-name of a persistent class</param>
+		/// <param name="id">a valid identifier of an existing persistent instance of the class </param>
+		/// <returns> The persistent instance or proxy </returns>
+		/// <remarks>
+		/// You should not use this method to determine if an instance exists (use <see cref="Get(string,object)"/>
+		/// instead). Use this only to retrieve an instance that you assume exists, where non-existence
+		/// would be an actual error.
+		/// </remarks>
+		object GetPersistentCacheOnly(string entityName, object id);
+
+		/// <summary>
+		/// Read the persistent state associated with the given identifier into the given transient
+		/// instance.
+		/// </summary>
+		/// <param name="obj">An "empty" instance of the persistent class</param>
+		/// <param name="id">A valid identifier of an existing persistent instance of the class</param>
+		void GetPersistentCacheOnly(object obj, object id);
+
 		/// <summary>
 		/// Return the persistent instance of the given entity class with the given identifier,
 		/// obtaining the specified lock mode.
@@ -827,7 +878,7 @@ namespace NHibernate
 		ITransaction Transaction { get; }
 
 		/// <summary>
-		/// Join the <see cref="System.Transactions.Transaction.Current"/> system transaction.
+		/// Join the system transaction.
 		/// </summary>
 		/// <remarks>
 		/// <para>

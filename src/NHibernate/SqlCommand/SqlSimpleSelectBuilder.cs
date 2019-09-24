@@ -187,6 +187,18 @@ namespace NHibernate.SqlCommand
 			return this;
 		}
 
+		/// <summary>
+		/// Adds the columns for the Type to the WhereFragment
+		/// </summary>
+		/// <param name="columnNames">The names of the columns to add.</param>
+		/// <param name="op">The operator to put between the column name and value.</param>
+		/// <returns>The SqlSimpleSelectBuilder</returns>
+		public SqlSimpleSelectBuilder AddWhereFragment(string[] columnNames, string op)
+		{
+			whereStrings.Add(ToWhereString(columnNames, op));
+			return this;
+		}
+
 		public virtual SqlSimpleSelectBuilder SetComment(System.String comment)
 		{
 			this.comment = comment;

@@ -277,6 +277,7 @@ namespace NHibernate.Cfg.XmlHbmBinding
 		{
 			property.IsUpdateable = propertyMapping.updateSpecified ? propertyMapping.update:true;
 			property.IsInsertable = propertyMapping.insertSpecified ? propertyMapping.insert:true;
+			property.IsSecondaryKey = false; // false for the moment. TODO: To be implemented
 			PropertyGeneration generation;
 			switch (propertyMapping.generated)
 			{
@@ -387,6 +388,7 @@ namespace NHibernate.Cfg.XmlHbmBinding
 			property.UnwrapProxy = manyToOneMapping.Lazy == HbmLaziness.NoProxy;
 			property.IsUpdateable = manyToOneMapping.update;
 			property.IsInsertable = manyToOneMapping.insert;
+			property.IsSecondaryKey = manyToOneMapping.secondarykey;
 			var toOne = property.Value as ToOne;
 			if (toOne != null)
 			{

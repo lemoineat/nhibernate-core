@@ -1,4 +1,5 @@
 using NHibernate.SqlTypes;
+using NHibernate.Type;
 
 namespace NHibernate.Persister.Entity
 {
@@ -22,6 +23,16 @@ namespace NHibernate.Persister.Entity
 		/// </summary>
 		string[] RootTableIdentifierColumnNames { get; }
 
+    /// <summary>
+    /// Get the names of columns on the root table used as a secondary key.
+    /// </summary>
+    string[] RootTableSecondaryKeyColumnNames { get;}
+    
+    /// <summary>
+    /// Get the types of columns on the root table used as a secondary key.
+    /// </summary>
+    IType[] RootTableSecondaryKeyTypes { get;}
+    
 		/// <summary> 
 		/// For versioned entities, get the name of the column (again, expected on the
 		/// root table) used to store the version values. 
@@ -43,6 +54,11 @@ namespace NHibernate.Persister.Entity
 		/// To build the SQL command in pessimistic lock
 		/// </summary>
 		SqlType[] IdAndVersionSqlTypes { get; }
+
+    /// <summary>
+    /// To build the SQL command in pessimistic lock
+    /// </summary>
+    SqlType[] IdSecondaryKeyAndVersionSqlTypes { get;}
 
 		#endregion
 	}

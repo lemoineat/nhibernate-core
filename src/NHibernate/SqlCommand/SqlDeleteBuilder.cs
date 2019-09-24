@@ -61,6 +61,19 @@ namespace NHibernate.SqlCommand
 		}
 
 		/// <summary>
+		/// Sets the secondary-key column for the <c>DELETE</c> sql to use.
+		/// </summary>
+		/// <param name="columnNames">An array of the column names for the Property</param>
+		/// <param name="identityType">The IType of the SecondaryKey Property.</param>
+		/// <returns>The SqlDeleteBuilder.</returns>
+		public SqlDeleteBuilder AddSecondaryKeyColumn(string[] columnNames, IType identityType)
+		{
+			whereStrings.Add(ToWhereString(columnNames));
+			parameterTypes.AddRange(identityType.SqlTypes(Mapping));
+			return this;
+		}
+
+		/// <summary>
 		/// Adds the columns for the Type to the WhereFragment
 		/// </summary>
 		/// <param name="columnNames">The names of the columns to add.</param>

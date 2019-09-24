@@ -36,6 +36,11 @@ namespace NHibernate.Engine
 			return Count;
 		}
 
+    public static ExecuteUpdateResultCheckStyle DetermineDefaultInsert(SqlString customSql, bool callable)
+    {
+      return None;
+    }
+
 		public override bool Equals(object obj)
 		{
 			var castedObj = obj as ExecuteUpdateResultCheckStyle;

@@ -40,7 +40,7 @@ namespace NHibernate.Hql.Ast.ANTLR.Exec
 			log.Debug("Generated ID-INSERT-SELECT SQL (multi-table update) : {0}", idInsertSelect);
 
 			string[] tableNames = persister.ConstraintOrderedTableNameClosure;
-			string[][] columnNames = persister.ConstraintOrderedTableKeyColumnClosure;
+			string[] columnNames = persister.IdentifierColumnNames;
 
 			string idSubselect = GenerateIdSubselect(persister);
 			IList<AssignmentSpecification> assignmentSpecifications = Walker.AssignmentSpecifications;
@@ -54,7 +54,7 @@ namespace NHibernate.Hql.Ast.ANTLR.Exec
 				SqlUpdateBuilder update =
 					new SqlUpdateBuilder(Factory.Dialect, Factory).SetTableName(tableNames[tableIndex])
 					.SetWhere(
-						string.Format("({0}) IN ({1})", string.Join(", ", columnNames[tableIndex]), idSubselect));
+						string.Format("({0}) IN ({1})", string.Join(", ", columnNames), idSubselect));
 
 				if (Factory.Settings.IsCommentsEnabled)
 				{

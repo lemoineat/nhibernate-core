@@ -36,6 +36,9 @@ namespace NHibernate.Tuple.Entity
 
 		private readonly StandardProperty[] properties;
 
+    private readonly int secondaryKeyPropertySpan;
+    private readonly Property[] secondaryKeyProperties;
+
 		private readonly string[] propertyNames;
 		private readonly IType[] propertyTypes;
 		private readonly bool[] propertyLaziness;
@@ -47,6 +50,8 @@ namespace NHibernate.Tuple.Entity
 		private readonly ValueInclusion[] updateInclusions;
 		private readonly bool[] propertyNullability;
 		private readonly bool[] propertyVersionability;
+    private readonly bool[] propertyIsSecondaryKey;
+    private readonly bool hasSecondaryKey = false;
 		private readonly CascadeStyle[] cascadeStyles;
 
 		private readonly Dictionary<string, int?> propertyIndexes = new Dictionary<string, int?>();
@@ -104,6 +109,8 @@ namespace NHibernate.Tuple.Entity
 
 			propertySpan = persistentClass.PropertyClosureSpan;
 			properties = new StandardProperty[propertySpan];
+      secondaryKeyPropertySpan = persistentClass.SecondaryKeyClosureSpan;
+      secondaryKeyProperties = new Property[secondaryKeyPropertySpan];
 			List<int> naturalIdNumbers = new List<int>();
 			var lazyPropertyDescriptors = new List<LazyPropertyDescriptor>();
 			var unwrapProxyPropertyDescriptors = new List<UnwrapProxyPropertyDescriptor>();
@@ -119,9 +126,11 @@ namespace NHibernate.Tuple.Entity
 			propertyNullability = new bool[propertySpan];
 			propertyVersionability = new bool[propertySpan];
 			propertyLaziness = new bool[propertySpan];
+      propertyIsSecondaryKey = new bool[propertySpan];
 			cascadeStyles = new CascadeStyle[propertySpan];
 
 			int i = 0;
+      int j = 0; // For secondary-key
 			int tempVersionProperty = NoVersionIndex;
 			bool foundCascade = false;
 			bool foundCollection = false;
@@ -171,6 +180,11 @@ namespace NHibernate.Tuple.Entity
 				else
 				{
 					properties[i] = PropertyFactory.BuildStandardProperty(prop, islazyProperty);
+          if (properties[i].IsSecondaryKey) {
+            hasSecondaryKey = true;
+            secondaryKeyProperties[j] = properties[i];
+            ++j;
+          }
 				}
 
 				if (prop.IsNaturalIdentifier)
@@ -211,6 +225,8 @@ namespace NHibernate.Tuple.Entity
 				                           && ((IAssociationType) propertyTypes[i]).IsAlwaysDirtyChecked);
 
 				cascadeStyles[i] = properties[i].CascadeStyle;
+
+        propertyIsSecondaryKey[i] = properties[i].IsSecondaryKey;
 
 				if (properties[i].IsLazy)
 				{
@@ -545,6 +561,11 @@ namespace NHibernate.Tuple.Entity
 			}
 		}
 
+    public Property[] SecondaryKeyProperties
+    {
+      get { return secondaryKeyProperties; }
+    }
+    
 		public StandardProperty[] Properties
 		{
 			get { return properties; }
@@ -724,6 +745,16 @@ namespace NHibernate.Tuple.Entity
 		{
 			get { return propertyVersionability; }
 		}
+
+    public bool[] PropertyIsSecondaryKey
+    {
+      get { return propertyIsSecondaryKey; }
+    }
+    
+    public bool HasSecondaryKey
+    {
+      get { return hasSecondaryKey; }
+    }
 
 		public CascadeStyle[] CascadeStyles
 		{

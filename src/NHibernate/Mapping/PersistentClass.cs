@@ -30,6 +30,7 @@ namespace NHibernate.Mapping
 		private string proxyInterfaceName;
 		private string discriminatorValue;
 		private bool lazy;
+    private readonly IList<Property> secondaryKeys = new List<Property>();
 		private readonly List<Property> properties = new List<Property>();
 		private readonly List<Subclass> subclasses = new List<Subclass>();
 		private readonly List<Property> subclassProperties = new List<Property>();
@@ -282,6 +283,8 @@ namespace NHibernate.Mapping
 		/// </remarks>
 		public abstract IEnumerable<Property> PropertyClosureIterator { get; }
 
+    public abstract IEnumerable<Property> SecondaryKeyClosureIterator { get; }
+
 		/// <summary>
 		/// When implemented by a class, gets an <see cref="IEnumerable"/> 
 		/// of <see cref="Table"/> objects that this mapped class reads from
@@ -424,6 +427,18 @@ namespace NHibernate.Mapping
 			get { return properties.Count + joins.Sum(j => j.PropertySpan); }
 		}
 
+    public virtual int SecondaryKeyClosureSpan
+    {
+      get
+      {
+        int span = secondaryKeys.Count;
+        foreach (Join join in joins) {
+          span += join.SecondaryKeySpan;
+        }
+        return span;
+      }
+    }
+
 		/// <summary> 
 		/// Build an iterator over the properties defined on this class.  The returned
 		/// iterator only accounts for "normal" properties (i.e. non-identifier
@@ -455,6 +470,32 @@ namespace NHibernate.Mapping
 		{
 			get { return properties; }
 		}
+
+    public virtual int SecondaryKeyColumnSpan
+    {
+      get
+      {
+        int i = 0;
+        foreach (Property property in SecondaryKeyIterator)
+        {
+          i += property.ColumnSpan;
+        }
+        return i;
+      }
+    }
+    
+    public virtual IEnumerable<Property> SecondaryKeyIterator
+    {
+      get
+      {
+        List<IEnumerable<Property>> iterators = new List<IEnumerable<Property>>();
+        iterators.Add(secondaryKeys);
+        foreach (Join join in joins)
+          iterators.Add(join.SecondaryKeyIterator);
+
+        return new JoinedEnumerable<Property>(iterators);
+      }
+    }
 
 		public bool IsCustomInsertCallable
 		{
@@ -583,6 +624,9 @@ namespace NHibernate.Mapping
 		public virtual void AddProperty(Property p)
 		{
 			properties.Add(p);
+      if (p.IsSecondaryKey) {
+        secondaryKeys.Add (p);
+      }
 			p.PersistentClass = this;
 		}
 

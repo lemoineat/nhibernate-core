@@ -67,7 +67,7 @@ namespace NHibernate.Action
 
 			if (!isCascadeDeleteEnabled && !veto)
 			{
-				persister.Delete(id, tmpVersion, instance, session);
+				persister.Delete(id, state, tmpVersion, instance, session);
 			}
 
 			//postDelete:
