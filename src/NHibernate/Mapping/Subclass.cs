@@ -145,6 +145,11 @@ namespace NHibernate.Mapping
 		{
 			get { return Superclass.PropertyClosureSpan + base.PropertyClosureSpan; }
 		}
+		
+		public override int SecondaryKeyClosureSpan
+	  {
+		  get { return Superclass.SecondaryKeyClosureSpan + base.SecondaryKeyClosureSpan; }
+		}
 
 		public override IEnumerable<Join> JoinClosureIterator
 		{
