@@ -544,7 +544,7 @@ namespace NHibernate.Util
 				//Load type from already loaded assembly
 				type = System.Type.GetType(
 					name.ToString(),
-					an => AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.FullName == an.FullName),
+					an => AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => IsAssemblyMatch (a, an)),
 					null);
 				if (type != null)
 				{
@@ -555,8 +555,8 @@ namespace NHibernate.Util
 
 				if (assembly == null)
 				{
-					log.Warn("Could not load type {0}. Possible cause: incorrect assembly name specified.", name);
-					return null;
+  				log.Warn("Could not load type {0}. Possible cause: incorrect assembly name specified.", name);
+	  			return null;
 				}
 
 				type = assembly.GetType(name.Type, throwOnError);
@@ -578,6 +578,11 @@ namespace NHibernate.Util
 				if (throwOnError) throw;
 				return null;
 			}
+		}
+
+		static bool IsAssemblyMatch(Assembly assembly, AssemblyName assemblyName)
+		{
+			return (assembly.FullName == assemblyName.FullName) || assembly.GetName ().Name.Equals (assemblyName.Name);
 		}
 
 		public static bool TryLoadAssembly(string assemblyName)

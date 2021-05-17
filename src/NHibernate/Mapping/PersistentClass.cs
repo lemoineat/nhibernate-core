@@ -488,12 +488,7 @@ namespace NHibernate.Mapping
     {
       get
       {
-        List<IEnumerable<Property>> iterators = new List<IEnumerable<Property>>();
-        iterators.Add(secondaryKeys);
-        foreach (Join join in joins)
-          iterators.Add(join.SecondaryKeyIterator);
-
-        return new JoinedEnumerable<Property>(iterators);
+				return joins.SelectMany (s => s.SecondaryKeyIterator).Concat (secondaryKeys);
       }
     }
 

@@ -63,7 +63,7 @@ namespace NHibernate.Mapping
 
 		public override IEnumerable<Property> SecondaryKeyClosureIterator
 		{
-		  get { return new JoinedEnumerable<Property>(Superclass.SecondaryKeyClosureIterator, SecondaryKeyIterator); }
+		  get { return Superclass.SecondaryKeyClosureIterator.Concat (SecondaryKeyIterator); }
 		}
 
 		/// <summary>

@@ -93,7 +93,7 @@ namespace NHibernate.DomainModel
 			return clone;
 		}
 
-		public Task LockAsync(object id, object version, object obj, LockMode lockMode, ISessionImplementor session, CancellationToken cancellationToken)
+		public Task LockAsync(object id, object version, object obj, NHibernate.Engine.EntityEntry entry, LockMode lockMode, ISessionImplementor session, CancellationToken cancellationToken)
 		{
 			throw new NotSupportedException();
 		}
@@ -116,7 +116,7 @@ namespace NHibernate.DomainModel
 			throw new NotSupportedException();
 		}
 
-		public Task DeleteAsync(object id, object version, object obj, ISessionImplementor session, CancellationToken cancellationToken)
+		public Task DeleteAsync(object id, object[] fields, object version, object obj, ISessionImplementor session, CancellationToken cancellationToken)
 		{
 			try
 			{
