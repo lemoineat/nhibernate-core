@@ -435,7 +435,8 @@ namespace NHibernate.Impl
 				IEntityPersister persister = GetEntityPersister(entityName, entity);
 				object id = persister.GetIdentifier(entity);
 				object version = persister.GetVersion(entity);
-				await (persister.DeleteAsync(id, version, entity, this, cancellationToken)).ConfigureAwait(false);
+				object[] state = persister.GetPropertyValues(entity);
+				await (persister.DeleteAsync(id, state, version, entity, this, cancellationToken)).ConfigureAwait(false);
 			}
 		}
 

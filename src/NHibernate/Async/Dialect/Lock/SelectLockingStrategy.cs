@@ -16,6 +16,7 @@ using NHibernate.Persister.Entity;
 using NHibernate.SqlCommand;
 using NHibernate.Impl;
 using NHibernate.Exceptions;
+using NHibernate.Type;
 
 namespace NHibernate.Dialect.Lock
 {
@@ -26,20 +27,26 @@ namespace NHibernate.Dialect.Lock
 
 		#region ILockingStrategy Members
 
-		public async Task LockAsync(object id, object version, object obj, ISessionImplementor session, CancellationToken cancellationToken)
+		public async Task LockAsync(object id, object version, IType[] secondaryKeyTypes, object[] secondaryKeyValues, object obj, ISessionImplementor session, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 			ISessionFactoryImplementor factory = session.Factory;
 			try
 			{
-				var st = await (session.Batcher.PrepareCommandAsync(CommandType.Text, sql, lockable.IdAndVersionSqlTypes, cancellationToken)).ConfigureAwait(false);
+				var st = await (session.Batcher.PrepareCommandAsync(CommandType.Text, sql, lockable.IdSecondaryKeyAndVersionSqlTypes, cancellationToken)).ConfigureAwait(false);
 				DbDataReader rs = null;
 				try
 				{
-					await (lockable.IdentifierType.NullSafeSetAsync(st, id, 0, session, cancellationToken)).ConfigureAwait(false);
+					int index = 0;
+					await (lockable.IdentifierType.NullSafeSetAsync(st, id, index, session, cancellationToken)).ConfigureAwait(false);
+					index += lockable.IdentifierType.GetColumnSpan(factory);
+					for (int i = 0; i < secondaryKeyTypes.Length; ++i)
+					{
+					  await (secondaryKeyTypes [i].NullSafeSetAsync(st, secondaryKeyValues[i], index++, session, cancellationToken)).ConfigureAwait(false);
+					}
 					if (lockable.IsVersioned)
 					{
-						await (lockable.VersionType.NullSafeSetAsync(st, version, lockable.IdentifierType.GetColumnSpan(factory), session, cancellationToken)).ConfigureAwait(false);
+						await (lockable.VersionType.NullSafeSetAsync(st, version, index++, session, cancellationToken)).ConfigureAwait(false);
 					}
 
 					rs = await (session.Batcher.ExecuteReaderAsync(st, cancellationToken)).ConfigureAwait(false);

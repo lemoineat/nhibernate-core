@@ -74,7 +74,11 @@ namespace NHibernate.Event.Default
 			EntityKey keyToLoad = source.GenerateEntityKey(@event.EntityId, persister);
 			try
 			{
-				if (loadType.IsNakedEntityReturned)
+				if (!loadType.LoadEntity)
+        {
+          @event.Result = GetExistingProxyOrCache(@event, persister, keyToLoad, loadType);
+        }
+        else if (loadType.IsNakedEntityReturned)
 				{
 					//do not return a proxy!
 					//(this option indicates we are initializing a proxy)

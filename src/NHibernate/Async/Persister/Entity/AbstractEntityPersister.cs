@@ -43,6 +43,8 @@ namespace NHibernate.Persister.Entity
 {
 	using System.Threading.Tasks;
 	using System.Threading;
+	using System.Diagnostics;
+
 	public abstract partial class AbstractEntityPersister : IOuterJoinLoadable, IQueryable, IClassMetadata,
 		IUniqueKeyLoadable, ISqlLoadable, ILazyPropertyInitializer, IPostInsertIdentityPersister, ILockable,
 		ISupportSelectModeJoinable, ICompositeKeyPostInsertIdentityPersister, ISupportLazyPropsJoinable
@@ -293,7 +295,7 @@ namespace NHibernate.Persister.Entity
 			}
 		}
 
-		public virtual Task LockAsync(object id, object version, object obj, LockMode lockMode, ISessionImplementor session, CancellationToken cancellationToken)
+		public virtual Task LockAsync(object id, object version, object obj, EntityEntry entry, LockMode lockMode, ISessionImplementor session, CancellationToken cancellationToken)
 		{
 			if (cancellationToken.IsCancellationRequested)
 			{
@@ -301,7 +303,22 @@ namespace NHibernate.Persister.Entity
 			}
 			try
 			{
-				return GetLocker(lockMode).LockAsync(id, version, obj, session, cancellationToken);
+        object[] secondaryKeyPropertyValues = new object[this.secondaryKeyColumnSpan];
+        if (HasSecondaryKey)
+        {
+          int j = 0;
+          for (int i = 0; i < PropertySpan; i++)
+          {
+            if (PropertyIsSecondaryKey[i])
+            {
+              string propertyName = PropertyNames [i];
+              Debug.Assert (j < this.secondaryKeyColumnSpan);
+              secondaryKeyPropertyValues [j++] = entry.GetLoadedValue (propertyName);
+            }
+          }
+        }
+
+				return GetLocker(lockMode).LockAsync(id, version, this.rootTableSecondaryKeyTypes, secondaryKeyPropertyValues, obj, session, cancellationToken);
 			}
 			catch (Exception ex)
 			{
@@ -699,7 +716,7 @@ namespace NHibernate.Persister.Entity
 				{
 					//if all fields are null, we might need to delete existing row
 					isRowToUpdate = true;
-					await (DeleteAsync(tableId, oldVersion, j, obj, SqlDeleteStrings[j], session, null, cancellationToken)).ConfigureAwait(false);
+					await (DeleteAsync(tableId, fields, oldVersion, j, obj, SqlDeleteStrings[j], session, null, cancellationToken)).ConfigureAwait(false);
 				}
 				else
 				{
@@ -749,6 +766,26 @@ namespace NHibernate.Persister.Entity
 					//Now write the values of fields onto the prepared statement
 					index = await (DehydrateAsync(id, fields, rowId, includeProperty, propertyColumnUpdateable, j, statement, session, index, cancellationToken)).ConfigureAwait(false);
 
+          // Secondary key
+          if (HasSecondaryKey)
+          {
+            for (int i = 0; i < entityMetamodel.PropertySpan; i++)
+            {
+              if (PropertyIsSecondaryKey[i] && IsPropertyOfTable(i, j))
+              {
+                try
+                {
+                  PropertyTypes[i].NullSafeSet(statement, fields[i], index, session);
+                  ++index;
+                }
+                catch (Exception ex)
+                {
+                  throw new PropertyValueException("Error dehydrating property value for", EntityName, entityMetamodel.PropertyNames[i], ex);
+                }
+              }
+            }
+          }
+          
 					// Write any appropriate versioning conditional parameters
 					if (useVersion && Versioning.OptimisticLock.Version == entityMetamodel.OptimisticLockMode)
 					{
@@ -831,7 +868,7 @@ namespace NHibernate.Persister.Entity
 		/// <summary>
 		/// Perform an SQL DELETE
 		/// </summary>
-		public async Task DeleteAsync(object id, object version, int j, object obj, SqlCommandInfo sql, ISessionImplementor session,
+		public async Task DeleteAsync(object id, object[] fields, object version, int j, object obj, SqlCommandInfo sql, ISessionImplementor session,
 											 object[] loadedState, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
@@ -885,6 +922,26 @@ namespace NHibernate.Persister.Entity
 					await (property.Type.NullSafeSetAsync(statement, tableId, index, session, cancellationToken)).ConfigureAwait(false);
 					index += property.Type.GetColumnSpan(factory);
 
+          // Secondary key
+          if (HasSecondaryKey)
+          {
+            for (int i = 0; i < entityMetamodel.PropertySpan; i++)
+            {
+              if (PropertyIsSecondaryKey[i] && IsPropertyOfTable(i, j))
+              {
+                try
+                {
+                  PropertyTypes[i].NullSafeSet(statement, fields[i], index, session);
+                  ++index;
+                }
+                catch (Exception ex)
+                {
+                  throw new PropertyValueException("Error dehydrating property value for", EntityName, entityMetamodel.PropertyNames[i], ex);
+                }
+              }
+            }
+          }
+          
 					// We should use the _current_ object state (ie. after any updates that occurred during flush)
 					if (useVersion)
 					{
@@ -1067,7 +1124,7 @@ namespace NHibernate.Persister.Entity
 			}
 		}
 
-		public async Task DeleteAsync(object id, object version, object obj, ISessionImplementor session, CancellationToken cancellationToken)
+		public async Task DeleteAsync(object id, object[] fields, object version, object obj, ISessionImplementor session, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 			int span = TableSpan;
@@ -1103,7 +1160,7 @@ namespace NHibernate.Persister.Entity
 
 			for (int j = span - 1; j >= 0; j--)
 			{
-				await (DeleteAsync(id, version, j, obj, deleteStrings[j], session, loadedState, cancellationToken)).ConfigureAwait(false);
+				await (DeleteAsync(id, fields, version, j, obj, deleteStrings[j], session, loadedState, cancellationToken)).ConfigureAwait(false);
 			}
 		}
 

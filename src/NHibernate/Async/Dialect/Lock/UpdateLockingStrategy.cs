@@ -17,6 +17,7 @@ using NHibernate.Exceptions;
 using NHibernate.Impl;
 using NHibernate.Persister.Entity;
 using NHibernate.SqlCommand;
+using NHibernate.Type;
 
 namespace NHibernate.Dialect.Lock
 {
@@ -27,7 +28,7 @@ namespace NHibernate.Dialect.Lock
 
 		#region ILockingStrategy Members
 
-		public Task LockAsync(object id, object version, object obj, ISessionImplementor session, CancellationToken cancellationToken)
+		public Task LockAsync(object id, object version, IType[] secondaryKeyTypes, object[] secondaryKeyValues, object obj, ISessionImplementor session, CancellationToken cancellationToken)
 		{
 			if (!lockable.IsVersioned)
 			{
@@ -44,7 +45,7 @@ namespace NHibernate.Dialect.Lock
 				ISessionFactoryImplementor factory = session.Factory;
 				try
 				{
-					var st = await (session.Batcher.PrepareCommandAsync(CommandType.Text, sql, lockable.IdAndVersionSqlTypes, cancellationToken)).ConfigureAwait(false);
+					var st = await (session.Batcher.PrepareCommandAsync(CommandType.Text, sql, lockable.IdSecondaryKeyAndVersionSqlTypes, cancellationToken)).ConfigureAwait(false);
 					try
 					{
 						await (lockable.VersionType.NullSafeSetAsync(st, version, 1, session, cancellationToken)).ConfigureAwait(false);
@@ -53,9 +54,14 @@ namespace NHibernate.Dialect.Lock
 						await (lockable.IdentifierType.NullSafeSetAsync(st, id, offset, session, cancellationToken)).ConfigureAwait(false);
 						offset += lockable.IdentifierType.GetColumnSpan(factory);
 
+  					for (int i = 0; i < secondaryKeyTypes.Length; ++i)
+  					{
+	  				  secondaryKeyTypes [i].NullSafeSet(st, secondaryKeyValues[i], offset++, session);
+	  				}
+
 						if (lockable.IsVersioned)
 						{
-							await (lockable.VersionType.NullSafeSetAsync(st, version, offset, session, cancellationToken)).ConfigureAwait(false);
+							await (lockable.VersionType.NullSafeSetAsync(st, version, offset++, session, cancellationToken)).ConfigureAwait(false);
 						}
 
 						int affected = await (session.Batcher.ExecuteNonQueryAsync(st, cancellationToken)).ConfigureAwait(false);

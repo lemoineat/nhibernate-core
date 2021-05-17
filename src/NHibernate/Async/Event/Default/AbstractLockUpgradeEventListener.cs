@@ -74,7 +74,7 @@ namespace NHibernate.Event.Default
 					}
 					else
 					{
-						await (persister.LockAsync(entry.Id, entry.Version, entity, requestedLockMode, source, cancellationToken)).ConfigureAwait(false);
+						await (persister.LockAsync(entry.Id, entry.Version, entity, entry, requestedLockMode, source, cancellationToken)).ConfigureAwait(false);
 					}
 					entry.LockMode = requestedLockMode;
 				}

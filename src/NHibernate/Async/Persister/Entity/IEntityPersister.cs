@@ -70,7 +70,7 @@ namespace NHibernate.Persister.Entity
 		/// <summary>
 		/// Do a version check (optional operation)
 		/// </summary>
-		Task LockAsync(object id, object version, object obj, LockMode lockMode, ISessionImplementor session, CancellationToken cancellationToken);
+		Task LockAsync(object id, object version, object obj, EntityEntry entry, LockMode lockMode, ISessionImplementor session, CancellationToken cancellationToken);
 
 		/// <summary>
 		/// Persist an instance
@@ -85,7 +85,7 @@ namespace NHibernate.Persister.Entity
 		/// <summary>
 		/// Delete a persistent instance
 		/// </summary>
-		Task DeleteAsync(object id, object version, object obj, ISessionImplementor session, CancellationToken cancellationToken);
+		Task DeleteAsync(object id, object[] fields, object version, object obj, ISessionImplementor session, CancellationToken cancellationToken);
 
 		/// <summary>
 		/// Update a persistent instance

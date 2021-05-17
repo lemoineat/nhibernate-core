@@ -9,6 +9,7 @@
 
 
 using NHibernate.Engine;
+using NHibernate.Type;
 
 namespace NHibernate.Dialect.Lock
 {
@@ -22,9 +23,11 @@ namespace NHibernate.Dialect.Lock
 		/// </summary>
 		/// <param name="id">The id of the row to be locked </param>
 		/// <param name="version">The current version (or null if not versioned) </param>
+		/// <param name="secondaryKeyTypes"></param>
+		/// <param name="secondaryKeyValues"></param>
 		/// <param name="obj">The object logically being locked (currently not used) </param>
 		/// <param name="session">The session from which the lock request originated </param>
 		/// <param name="cancellationToken">A cancellation token that can be used to cancel the work</param>
-		Task LockAsync(object id, object version, object obj, ISessionImplementor session, CancellationToken cancellationToken);
+		Task LockAsync(object id, object version, IType[] secondaryKeyTypes, object[] secondaryKeyValues, object obj, ISessionImplementor session, CancellationToken cancellationToken);
 	}
 }
